@@ -169,7 +169,7 @@ async def main():
     print(f"Success rate: {len(results)/len(urls)*100:.1f}%")
     
     if results:
-        # Deduplicate by title
+        # Deduplicate batch by title
         seen = set()
         deduped = []
         for r in results:
@@ -178,30 +178,52 @@ async def main():
                 seen.add(key)
                 deduped.append(r)
         
-        print(f"After dedup: {len(deduped)} unique judgments")
+        print(f"After dedup (batch): {len(deduped)} unique judgments")
         
-        # Save to JSONL
+        # Append to existing raw file (don't overwrite) — merge and dedupe globally
+        existing = []
+        if OUTPUT_FILE.exists():
+            try:
+                for line in open(OUTPUT_FILE, encoding="utf-8"):
+                    if line.strip():
+                        existing.append(json.loads(line))
+                print(f"Loaded {len(existing)} existing judgments from {OUTPUT_FILE}")
+            except:
+                existing = []
+        
+        # Merge and dedupe globally by title
+        merged = {r["title"].lower().strip(): r for r in existing}
+        for r in deduped:
+            key = r["title"].lower().strip()
+            if key not in merged:
+                merged[key] = r
+        
+        final = list(merged.values())
+        print(f"Total after merge: {len(final)} unique judgments (added {len(final)-len(existing)})")
+        
+        # Save merged to JSONL
         with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
-            for r in deduped:
+            for r in final:
                 f.write(json.dumps(r, ensure_ascii=False) + "\n")
         
         print(f"Saved to {OUTPUT_FILE} ({OUTPUT_FILE.stat().st_size/1024:.1f} KB)")
         
-        # Also save instruction format preview
+        # Also save instruction format preview (from final)
         preview_file = Path("data/raw/sample_instruction.jsonl")
         with open(preview_file, "w", encoding="utf-8") as f:
-            for r in deduped[:3]:
+            for r in final[:3]:
                 inst = {
                     "instruction": "Summarize the Indian legal judgment in 5 bullets (facts, issues, holdings, reasoning, order).",
                     "input": r["text"][:1200],
                     "output": f"- Facts: {r['title']} before {r['court']}\n- Issues: [to be generated]\n- Holdings: [to be generated]\n- Reasoning: [to be generated]\n- Order: [to be generated]"
                 }
                 f.write(json.dumps(inst, ensure_ascii=False) + "\n")
-        print(f"Preview instruction format: {preview_file}")
+        print(f"Preview instruction format: {preview_file} (ignored, local-only)")
         
-        # Stats
-        avg_len = sum(r["length"] for r in deduped) / len(deduped) if deduped else 0
+        # Stats on final
+        avg_len = sum(r["length"] for r in final) / len(final) if final else 0
         print(f"Avg judgment length: {avg_len:.0f} chars")
+        print(f"Progress to 1000: {len(final)}/1000 ({len(final)/10:.0f}%)")
         print(f"\nNext: Run data/prepare.py to create train/val/test splits for QLoRA")
     else:
         print("No results — check URLs or try with --seed-file")
