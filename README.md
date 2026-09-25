@@ -1,36 +1,36 @@
-# D3 Fine-Tune a Small Language Model with LoRA / QLoRA
+# Fine-Tune 7B for Indian Legal QA (QLoRA)
 
-> Track D / Intermediate-Advanced / 3-4 weeks. Narrow domain, 1k+ curated instructions, QLoRA 4-bit on free GPU, evaluate vs base, serve.
+A 7B open model taught to answer Indian legal questions in a fixed format — 800 examples, free Colab T4, measured gain.
 
-## What it is
-Take a 7B open-weight model, build a domain instruction dataset, QLoRA-tune on Colab/Kaggle T4, compare to base on held-out with a rubric, merge adapter, serve via vLLM + Gradio.
+## Results (same held-out 100 throughout)
 
-## Build order (vault D3:33-34 — do in order)
-1. Pick narrow domain — SQL for my schema, Indian legal summaries, or SAP support (narrow beats general).
-2. Build dataset (70% of work): 1k+ examples, dedup, length filter, format validation. Document source + cleaning.
-3. Split train/val/test **before** looking again.
-4. Run base on test, record score — the comparison point.
-5. QLoRA 4-bit on tiny subset to prove loop, then full.
-6. Watch train/val loss curves — stop if val rises (overfit).
-7. Evaluate vs base on held-out with rubric (wins/losses/ties; LLM-as-judge + 20 human).
-8. Merge adapter, quantize, serve via vLLM + Gradio, publish model + dataset cards.
+| Stage | Score | Notes |
+|---|---|---|
+| Base Mistral-7B-Instruct, greedy 128 tokens | F1 0.324 | Before. Token-F1 vs reference, deterministic. |
+| QLoRA rank-16 tuned (ckpt-150) | **F1 0.404 (+25%)** | 42M trainable (0.58%). Same 100 rows, same scorer, single adapter verified. |
+| Train loss step 50/100/150 | 0.919 → 0.573 → 0.324 | Falls throughout. |
+| Val loss step 50/100/150 | 0.922 → 0.937 → 1.065 | Best at 50 — overfit after. ckpt-50 was never saved (`save_steps` default 500); reported number is the honest final. |
+
+## How it was built
+
+- **Data:** Kaggle 10k Indian legal QA → cleaned, deduped, fixed seed 42 → 800/100/100 (`data/kaggle_to_instruction.py`, local only).
+- **Train:** 4-bit NF4 double-quant, rank 16 / alpha 32 / LR 2e-4 / 3 epochs / batch 2×8 / 1024 ctx, eval every 50 steps. 20-step proof run first, then full ~2.5 hrs.
+- **Eval:** identical prompts + token-F1 on held-out 100 for base and tuned.
 
 ## Repo layout
+
 ```
-data/           raw + cleaned JSONL, prepare.py
-configs/        qlora.yaml (rank, alpha, LR, epochs)
-train.py        QLoRA loop
-eval/           held-out set + rubric
-serve.py        vLLM/FastAPI + Gradio
+data/kaggle_to_instruction.py   10k -> 800/100/100 (Kaggle CSV stays local)
+adapters/                       NOT in git — Drive backup (ckpt-150 zip)
+SKILL.md                        engineering log — decisions, numbers, failures, answers
 ```
 
-## Interview gate (must answer before resume)
-1. When to fine-tune vs RAG vs better prompt?
-2. What does LoRA change inside the model, why does it save memory?
-3. Validation loss climbed at epoch 3 — what and what did you do?
+## Limitations (honest)
 
-## Resume bullet template
-Fine-tuned 7B open-weight model with QLoRA 4-bit on free-tier GPU over 1.2k curated domain examples; evaluated vs base on held-out with defined rubric and served merged quantised model via vLLM + Gradio.
+800 short pairs teach format more than law; F1 punishes good paraphrase so 0.404 understates quality; val-best checkpoint lost to `save_steps` default; no merge, demo, or cards yet.
 
-## Next
-Pick domain, create empty repo `finetune-lora`, commit this SKILL.md, start dataset curation. Ask me for domain pros/cons if torn.
+## Rerun on Colab (T4)
+
+1. Upload `train/val/test.jsonl` to `/content` (or `cp` from Drive `d3/`).
+2. Baseline cell → record F1. Train cells → proof 20 steps, then full.
+3. Eval cell on ckpt → compare. Save adapter zip to Drive before the VM dies.
