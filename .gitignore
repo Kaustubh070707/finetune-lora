@@ -2,10 +2,7 @@ __pycache__/
 .venv/
 .env
 *.pyc
-# raw crawled data — local only, scales to 1000+ (do not push)
-data/raw/*.jsonl
-data/seed_urls.txt
+# datasets — local only (Kaggle 10k, raw crawls)
+data/kaggle/
+data/raw/
 data/processed/
-# test crawls — local only
-data/test_crawl.py
-data/test_indiankanoon.py
