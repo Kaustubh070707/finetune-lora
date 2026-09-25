@@ -2,7 +2,7 @@ __pycache__/
 .venv/
 .env
 *.pyc
-# datasets — local only (Kaggle 10k, raw crawls)
+# datasets — local only (Kaggle raw, crawls, full 10k)
 data/kaggle/
 data/raw/
-data/processed/
+data/processed/full_10k.jsonl
