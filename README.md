@@ -27,7 +27,13 @@ SKILL.md                        engineering log — decisions, numbers, failures
 
 ## Limitations (honest)
 
-800 short pairs teach format more than law; F1 punishes good paraphrase so 0.404 understates quality; val-best checkpoint lost to `save_steps` default; no merge, demo, or cards yet.
+800 short pairs teach format more than law; F1 punishes good paraphrase so merged 0.386 understates quality; val-best checkpoint lost to `save_steps` default; merge rounding cost 0.018 (adapter 0.404).
+
+## Demo
+
+- **Model:** https://huggingface.co/Kaustubh070707/mistral-7B-legal-qlora-5bullet (merged 7B, 4.13GB)
+- **Serve:** `python serve.py` on a GPU box, or `python serve.py --share` on Colab for a public Gradio link. Railway free cannot hold 7B — stated plainly.
+- **Adapter:** Drive backup `d3/adapter-final150.zip` (42M trainable, single `default` verified).
 
 ## Rerun on Colab (T4)
 

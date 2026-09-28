@@ -34,7 +34,7 @@ The base model answers legal questions in free prose that drifts in format. Afte
 - [x] Dataset curation + quality control evidence: `data/kaggle_to_instruction.py`, 10,002 → 800/100/100, fixed seed 42, local-only data
 - [x] Training diagnostics evidence: step-50/100/150 train/val table below, overfit caught
 - [x] Rigorous evaluation evidence: base 0.324 vs tuned 0.404 token-F1 on same held-out 100
-- [ ] Efficient serving evidence: merge + vLLM/Gradio demo — not built yet
+- [x] Efficient serving evidence: `serve.py` (FastAPI `/summarize` + Gradio tab, loads Hub repo) + merged model on Hub — Railway free excluded honestly (7B needs VRAM)
 
 # 6. Numbers I measured
 | Metric | Before (base) | After (tuned ckpt-150) | How I measured it |
